@@ -91,9 +91,6 @@ export function ApplicationForm() {
         await new Promise((r) => setTimeout(r, 1400));
         console.log("Application payload (Simulated)", { ...values, resumeName: resume.name });
       } else {
-        const formData = new URLSearchParams();
-        Object.entries(values).forEach(([k, v]) => formData.append(k, String(v ?? "")));
-        
         // Convert file to base64
         const fileData = await new Promise<string>((resolve, reject) => {
           const reader = new FileReader();
@@ -102,14 +99,17 @@ export function ApplicationForm() {
           reader.onerror = reject;
         });
 
-        formData.append("resumeName", resume.name);
-        formData.append("fileData", fileData);
+        const payload = {
+          ...values,
+          resumeName: resume.name,
+          fileData: fileData
+        };
 
         await fetch(webhookUrl, {
           method: "POST",
           mode: "no-cors",
-          headers: { "Content-Type": "application/x-www-form-urlencoded" },
-          body: formData.toString(),
+          headers: { "Content-Type": "text/plain" }, // Simple content type to avoid CORS preflight
+          body: JSON.stringify(payload),
         });
       }
 
