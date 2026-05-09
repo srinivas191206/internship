@@ -85,16 +85,34 @@ export function ApplicationForm() {
       return;
     }
     try {
-      // TODO: Wire to Google Sheets / Apps Script Web App URL.
-      // const formData = new FormData();
-      // Object.entries(values).forEach(([k, v]) => formData.append(k, String(v ?? "")));
-      // formData.append("resume", resume);
-      // await fetch(import.meta.env.VITE_SHEETS_WEBHOOK_URL, { method: "POST", body: formData });
-      await new Promise((r) => setTimeout(r, 1400));
-      console.log("Application payload", { ...values, resumeName: resume.name });
+      const webhookUrl = import.meta.env.VITE_SHEETS_WEBHOOK_URL;
+      
+      if (!webhookUrl || webhookUrl.includes("PASTE_YOUR")) {
+        // Fallback for demo/dev if URL is not set
+        await new Promise((r) => setTimeout(r, 1400));
+        console.log("Application payload (Simulated)", { ...values, resumeName: resume.name });
+      } else {
+        const formData = new URLSearchParams();
+        Object.entries(values).forEach(([k, v]) => formData.append(k, String(v ?? "")));
+        formData.append("resumeName", resume.name);
+
+        const response = await fetch(webhookUrl, {
+          method: "POST",
+          mode: "no-cors", // Required for Google Apps Script redirects
+          headers: {
+            "Content-Type": "application/x-www-form-urlencoded",
+          },
+          body: formData.toString(),
+        });
+        
+        // Since we use no-cors, we won't get a readable response body, 
+        // but the data will be sent successfully.
+      }
+
       setSubmitted(true);
       reset();
       setResume(null);
+      toast.success("Application submitted successfully!");
     } catch (err) {
       console.error(err);
       toast.error("Something went wrong. Please try again.");
